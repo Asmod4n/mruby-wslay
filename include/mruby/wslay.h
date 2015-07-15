@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-#define E_WSLAY_ERROR mrb_class_get_under(mrb, mrb_module_get(mrb, "Wslay"), "Error")
+#define E_WSLAY_ERROR mrb_class_get_under(mrb, mrb_module_get(mrb, "Wslay"), "Err")
 
 #ifdef __cplusplus
 }

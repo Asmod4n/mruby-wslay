@@ -1,7 +1,7 @@
 ﻿#include "mruby/wslay.h"
 #include "mrb_wslay.h"
 
-#define MRB_WSLAY_ERR(err) mrb_hash_get(mrb, mrb_const_get(mrb, mrb_obj_value(mrb_module_get(mrb, "Wslay")), mrb_intern_lit(mrb, "Err")), err)
+#define MRB_WSLAY_ERROR(err) mrb_hash_get(mrb, mrb_const_get(mrb, mrb_obj_value(mrb_module_get(mrb, "Wslay")), mrb_intern_lit(mrb, "Error")), err)
 #define MRB_GET_OPCODE(opcode) mrb_hash_get(mrb, mrb_const_get(mrb, mrb_obj_value(mrb_module_get(mrb, "Wslay")), mrb_intern_lit(mrb, "OpCode")), opcode)
 #define MRB_GET_STATUSCODE(status_code) mrb_hash_get(mrb, mrb_const_get(mrb, mrb_obj_value(mrb_module_get(mrb, "Wslay")), mrb_intern_lit(mrb, "StatusCode")), status_code)
 
@@ -39,7 +39,7 @@ mrb_wslay_event_on_msg_recv_callback(wslay_event_context_ptr ctx,
       mrb_obj_new(mrb,
         mrb_class_get_under(mrb,
           mrb_module_get_under(mrb,
-            mrb_module_get(mrb, "Wslay"), "Event"), "OnMsgRecvArg"), sizeof(argv), argv));
+            mrb_module_get(mrb, "Wslay"), "Event"), "OnMsgRecvArg"), 4, argv));
 
     mrb_gc_arena_restore(mrb, ai);
 
@@ -234,7 +234,7 @@ mrb_wslay_event_recv(mrb_state *mrb, mrb_value self)
     mrb_exc_raise(mrb, mrb_obj_value(mrb->exc));
   else
   if (err != 0)
-    return MRB_WSLAY_ERR(mrb_fixnum_value(err));
+    return MRB_WSLAY_ERROR(mrb_fixnum_value(err));
 
   return self;
 }
@@ -255,7 +255,7 @@ mrb_wslay_event_send(mrb_state *mrb, mrb_value self)
     mrb_exc_raise(mrb, mrb_obj_value(mrb->exc));
   else
   if (err != 0)
-    return MRB_WSLAY_ERR(mrb_fixnum_value(err));
+    return MRB_WSLAY_ERROR(mrb_fixnum_value(err));
 
   return self;
 }
@@ -291,7 +291,7 @@ mrb_wslay_event_queue_msg(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_WSLAY_ERROR, "the given message is invalid");
   else
   if (err != 0)
-    return MRB_WSLAY_ERR(mrb_fixnum_value(err));
+    return MRB_WSLAY_ERROR(mrb_fixnum_value(err));
 
   return self;
 }
@@ -338,7 +338,7 @@ mrb_wslay_event_get_status_code_received(mrb_state *mrb, mrb_value self)
   mrb_wslay_user_data *data = (mrb_wslay_user_data *) DATA_PTR(self);
   mrb_assert(data);
 
-  return mrb_fixnum_value(wslay_event_get_status_code_received(data->ctx));
+  return MRB_GET_STATUSCODE(mrb_fixnum_value(wslay_event_get_status_code_received(data->ctx)));
 }
 
 static mrb_value
@@ -347,7 +347,7 @@ mrb_wslay_event_get_status_code_sent(mrb_state *mrb, mrb_value self)
   mrb_wslay_user_data *data = (mrb_wslay_user_data *) DATA_PTR(self);
   mrb_assert(data);
 
-  return mrb_fixnum_value(wslay_event_get_status_code_sent(data->ctx));
+  return MRB_GET_STATUSCODE(mrb_fixnum_value(wslay_event_get_status_code_sent(data->ctx)));
 }
 
 static mrb_value
@@ -385,7 +385,7 @@ mrb_wslay_event_context_server_init(mrb_state *mrb, mrb_value self)
   }
   else
   if (err != 0)
-    return MRB_WSLAY_ERR(mrb_fixnum_value(err));
+    return MRB_WSLAY_ERROR(mrb_fixnum_value(err));
 
   return self;
 }
@@ -427,7 +427,7 @@ mrb_wslay_event_context_client_init(mrb_state *mrb, mrb_value self)
   }
   else
   if (err != 0)
-    return MRB_WSLAY_ERR(mrb_fixnum_value(err));
+    return MRB_WSLAY_ERROR(mrb_fixnum_value(err));
 
   return self;
 }
@@ -438,9 +438,9 @@ mrb_mruby_wslay_gem_init(mrb_state* mrb) {
   *wslay_event_context_cl, *wslay_event_context_server_cl, *wslay_event_context_client_cl;
 
   wslay_mod = mrb_define_module(mrb, "Wslay");
-  wslay_error_cl = mrb_define_class_under(mrb, wslay_mod, "Error", E_RUNTIME_ERROR);
+  wslay_error_cl = mrb_define_class_under(mrb, wslay_mod, "Err", E_RUNTIME_ERROR);
   mrb_value wslay_error_hash = mrb_hash_new_capa(mrb, 9 * 2);
-  mrb_define_const(mrb, wslay_mod, "Err", wslay_error_hash);
+  mrb_define_const(mrb, wslay_mod, "Error", wslay_error_hash);
   mrb_hash_set(mrb, wslay_error_hash, mrb_fixnum_value(WSLAY_ERR_WANT_READ), mrb_symbol_value(mrb_intern_lit(mrb, "want_read")));
   mrb_hash_set(mrb, wslay_error_hash, mrb_fixnum_value(WSLAY_ERR_WANT_WRITE), mrb_symbol_value(mrb_intern_lit(mrb, "want_write")));
   mrb_hash_set(mrb, wslay_error_hash, mrb_fixnum_value(WSLAY_ERR_PROTO), mrb_symbol_value(mrb_intern_lit(mrb, "proto")));
@@ -450,14 +450,12 @@ mrb_mruby_wslay_gem_init(mrb_state* mrb) {
   mrb_hash_set(mrb, wslay_error_hash, mrb_fixnum_value(WSLAY_ERR_CALLBACK_FAILURE), mrb_symbol_value(mrb_intern_lit(mrb, "callback_failure")));
   mrb_hash_set(mrb, wslay_error_hash, mrb_fixnum_value(WSLAY_ERR_WOULDBLOCK), mrb_symbol_value(mrb_intern_lit(mrb, "wouldblock")));
   mrb_hash_set(mrb, wslay_error_hash, mrb_fixnum_value(WSLAY_ERR_NOMEM), mrb_symbol_value(mrb_intern_lit(mrb, "nomem")));
-  int ai = mrb_gc_arena_save(mrb);
   mrb_value wslay_error_hash_keys = mrb_hash_keys(mrb, wslay_error_hash);
   for (mrb_int i = 0; i < RARRAY_LEN(wslay_error_hash_keys); i++) {
     mrb_value key = mrb_ary_ref(mrb, wslay_error_hash_keys, i);
     mrb_hash_set(mrb, wslay_error_hash,
       mrb_hash_get(mrb, wslay_error_hash, key), key);
   }
-  mrb_gc_arena_restore(mrb, ai);
 
   mrb_value wslay_status_code_hash = mrb_hash_new_capa(mrb, 12 * 2);
   mrb_define_const(mrb, wslay_mod, "StatusCode", wslay_status_code_hash);
@@ -473,14 +471,12 @@ mrb_mruby_wslay_gem_init(mrb_state* mrb) {
   mrb_hash_set(mrb, wslay_status_code_hash, mrb_fixnum_value(WSLAY_CODE_MANDATORY_EXT), mrb_symbol_value(mrb_intern_lit(mrb, "mandatory_ext")));
   mrb_hash_set(mrb, wslay_status_code_hash, mrb_fixnum_value(WSLAY_CODE_INTERNAL_SERVER_ERROR), mrb_symbol_value(mrb_intern_lit(mrb, "internal_server_error")));
   mrb_hash_set(mrb, wslay_status_code_hash, mrb_fixnum_value(WSLAY_CODE_TLS_HANDSHAKE), mrb_symbol_value(mrb_intern_lit(mrb, "tls_handshake")));
-  ai = mrb_gc_arena_save(mrb);
   mrb_value wslay_status_code_hash_keys = mrb_hash_keys(mrb, wslay_status_code_hash);
   for (mrb_int i = 0; i < RARRAY_LEN(wslay_status_code_hash_keys); i++) {
     mrb_value key = mrb_ary_ref(mrb, wslay_status_code_hash_keys, i);
     mrb_hash_set(mrb, wslay_status_code_hash,
       mrb_hash_get(mrb, wslay_status_code_hash, key), key);
   }
-  mrb_gc_arena_restore(mrb, ai);
 
   mrb_value io_flags_hash = mrb_hash_new_capa(mrb, 2);
   mrb_define_const(mrb, wslay_mod, "IoFlags", io_flags_hash);
@@ -495,14 +491,12 @@ mrb_mruby_wslay_gem_init(mrb_state* mrb) {
   mrb_hash_set(mrb, wslay_opcode_hash, mrb_fixnum_value(WSLAY_CONNECTION_CLOSE), mrb_symbol_value(mrb_intern_lit(mrb, "connection_close")));
   mrb_hash_set(mrb, wslay_opcode_hash, mrb_fixnum_value(WSLAY_PING), mrb_symbol_value(mrb_intern_lit(mrb, "ping")));
   mrb_hash_set(mrb, wslay_opcode_hash, mrb_fixnum_value(WSLAY_PONG), mrb_symbol_value(mrb_intern_lit(mrb, "pong")));
-  ai = mrb_gc_arena_save(mrb);
   mrb_value wslay_opcode_hash_keys = mrb_hash_keys(mrb, wslay_opcode_hash);
   for (mrb_int i = 0; i < RARRAY_LEN(wslay_opcode_hash_keys); i++) {
     mrb_value key = mrb_ary_ref(mrb, wslay_opcode_hash_keys, i);
     mrb_hash_set(mrb, wslay_opcode_hash,
       mrb_hash_get(mrb, wslay_opcode_hash, key), key);
   }
-  mrb_gc_arena_restore(mrb, ai);
 
   wslay_event_mod = mrb_define_module_under(mrb, wslay_mod, "Event");
   wslay_event_context_cl = mrb_define_class_under(mrb, wslay_event_mod, "Context", mrb->object_class);
