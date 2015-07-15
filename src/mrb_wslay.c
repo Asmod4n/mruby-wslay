@@ -1,16 +1,6 @@
 ﻿#include "mruby/wslay.h"
 #include "mrb_wslay.h"
 
-#define MRB_WSLAY_ERROR(err) mrb_hash_get(mrb, mrb_const_get(mrb, mrb_obj_value(mrb_module_get(mrb, "Wslay")), mrb_intern_lit(mrb, "Error")), err)
-#define MRB_GET_OPCODE(opcode) mrb_hash_get(mrb, mrb_const_get(mrb, mrb_obj_value(mrb_module_get(mrb, "Wslay")), mrb_intern_lit(mrb, "OpCode")), opcode)
-#define MRB_GET_STATUSCODE(status_code) mrb_hash_get(mrb, mrb_const_get(mrb, mrb_obj_value(mrb_module_get(mrb, "Wslay")), mrb_intern_lit(mrb, "StatusCode")), status_code)
-
-typedef struct {
-  wslay_event_context_ptr ctx;
-  mrb_state *mrb;
-  mrb_value handle;
-} mrb_wslay_user_data;
-
 static void
 mrb_wslay_event_on_msg_recv_callback(wslay_event_context_ptr ctx,
   const struct wslay_event_on_msg_recv_arg *arg, void *user_data)
@@ -39,7 +29,7 @@ mrb_wslay_event_on_msg_recv_callback(wslay_event_context_ptr ctx,
       mrb_obj_new(mrb,
         mrb_class_get_under(mrb,
           mrb_module_get_under(mrb,
-            mrb_module_get(mrb, "Wslay"), "Event"), "OnMsgRecvArg"), 4, argv));
+            mrb_module_get(mrb, "Wslay"), "Event"), "OnMsgRecvArg"), NELEMS(argv), argv));
 
     mrb_gc_arena_restore(mrb, ai);
 
@@ -172,18 +162,6 @@ mrb_wslay_event_genmask_callback(wslay_event_context_ptr ctx,
 
   return ret;
 }
-
-static void
-mrb_wslay_user_data_free(mrb_state *mrb, void *p)
-{
-  mrb_wslay_user_data *data = (mrb_wslay_user_data *) p;
-  wslay_event_context_free(data->ctx);
-  mrb_free(mrb, p);
-}
-
-static const struct mrb_data_type mrb_wslay_user_data_type = {
-  "$mrb_i_wslay_user_data", mrb_wslay_user_data_free,
-};
 
 static mrb_value
 mrb_wslay_event_config_set_no_buffering(mrb_state *mrb, mrb_value self)
