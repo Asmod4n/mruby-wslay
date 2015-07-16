@@ -1,6 +1,10 @@
 module Wslay
   module Event
-    OnMsgRecvArg = Struct.new(:rsv, :opcode, :msg, :status_code)
+    OnMsgRecvArg = Struct.new(:rsv, :opcode, :msg, :status_code) do
+      def to_str
+        msg.dup
+      end
+    end
 
     class Callbacks
       def recv_callback(&block)
