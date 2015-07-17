@@ -141,14 +141,20 @@ mrb_wslay_event_genmask_callback(wslay_event_context_ptr ctx,
   MRB_TRY(&c_jmp) {
     data->mrb->jmp = &c_jmp;
 
-    mrb_value buf_obj = mrb_yield(data->mrb,
+    mrb_value args[2];
+    args[0] = mrb_cptr_value(data->mrb, buf);
+    args[1] = mrb_fixnum_value(len);
+
+    mrb_value buf_obj = mrb_yield_argv(data->mrb,
       mrb_iv_get(data->mrb, data->handle,
         mrb_intern_lit(data->mrb, "@genmask_callback")),
-      mrb_fixnum_value(len));
+      2, args);
 
-    buf_obj = mrb_str_to_str(data->mrb, buf_obj);
-    mrb_assert(RSTRING_LEN(buf_obj) == len);
-    memcpy(buf, (uint8_t *) RSTRING_PTR(buf_obj), RSTRING_LEN(buf_obj));
+    if (mrb_type(buf_obj) != MRB_TT_CPTR) {
+      buf_obj = mrb_str_to_str(data->mrb, buf_obj);
+      mrb_assert(RSTRING_LEN(buf_obj) == len);
+      memcpy(buf, (uint8_t *) RSTRING_PTR(buf_obj), RSTRING_LEN(buf_obj));
+    }
 
     ret = 0;
 
