@@ -20,7 +20,7 @@ mrb_wslay_event_on_msg_recv_callback(wslay_event_context_ptr ctx,
     mrb_value argv[4];
     argv[0] = mrb_fixnum_value(arg->rsv);
     argv[1] = MRB_GET_OPCODE(mrb_fixnum_value(arg->opcode));
-    argv[2] = mrb_str_new_static(mrb, (const char *) arg->msg, arg->msg_length);
+    argv[2] = mrb_str_new(mrb, (const char *) arg->msg, arg->msg_length);
     argv[3] = MRB_GET_STATUSCODE(mrb_fixnum_value(arg->status_code));
 
     mrb_yield(mrb,
@@ -147,8 +147,7 @@ mrb_wslay_event_genmask_callback(wslay_event_context_ptr ctx,
 
     mrb_value buf_obj = mrb_yield_argv(data->mrb,
       mrb_iv_get(data->mrb, data->handle,
-        mrb_intern_lit(data->mrb, "@genmask_callback")),
-      2, args);
+        mrb_intern_lit(data->mrb, "@genmask_callback")), NELEMS(args), args);
 
     if (mrb_type(buf_obj) != MRB_TT_CPTR) {
       buf_obj = mrb_str_to_str(data->mrb, buf_obj);
