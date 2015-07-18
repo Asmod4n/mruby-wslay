@@ -281,6 +281,38 @@ mrb_wslay_event_queue_msg(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mrb_wslay_event_queue_close(mrb_state *mrb, mrb_value self)
+{
+  mrb_wslay_user_data *data = (mrb_wslay_user_data *) DATA_PTR(self);
+  mrb_assert(data);
+
+  mrb_sym status_code;
+  char *reason = NULL;
+  mrb_int reason_length = 0;
+
+  mrb_get_args(mrb, "n|s", &status_code, &reason, &reason_length);
+
+  mrb_int stc = mrb_int(mrb, MRB_GET_STATUSCODE(mrb_symbol_value(status_code)));
+
+  int err = wslay_event_queue_close(data->ctx, stc, (const uint8_t *) reason, reason_length);
+  if (err == WSLAY_ERR_NOMEM) {
+    mrb->out_of_memory = TRUE;
+    mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
+  }
+  else
+  if (err == WSLAY_ERR_NO_MORE_MSG)
+    mrb_raise(mrb, E_WSLAY_ERROR, "further message queueing is not allowed");
+  else
+  if (err == WSLAY_ERR_INVALID_ARGUMENT)
+    mrb_raise(mrb, E_WSLAY_ERROR, "the given message is invalid");
+  else
+  if (err != 0)
+    return MRB_WSLAY_ERROR(mrb_fixnum_value(err));
+
+  return self;
+}
+
+static mrb_value
 mrb_wslay_event_want_read(mrb_state *mrb, mrb_value self)
 {
   mrb_wslay_user_data *data = (mrb_wslay_user_data *) DATA_PTR(self);
@@ -490,6 +522,7 @@ mrb_mruby_wslay_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, wslay_event_context_cl, "recv",                  mrb_wslay_event_recv,                           MRB_ARGS_NONE());
   mrb_define_method(mrb, wslay_event_context_cl, "send",                  mrb_wslay_event_send,                           MRB_ARGS_NONE());
   mrb_define_method(mrb, wslay_event_context_cl, "queue_msg",             mrb_wslay_event_queue_msg,                      MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, wslay_event_context_cl, "queue_close",           mrb_wslay_event_queue_close,                    MRB_ARGS_ARG(1, 1));
   mrb_define_method(mrb, wslay_event_context_cl, "want_read?",            mrb_wslay_event_want_read,                      MRB_ARGS_NONE());
   mrb_define_method(mrb, wslay_event_context_cl, "want_write?",           mrb_wslay_event_want_write,                     MRB_ARGS_NONE());
   mrb_define_method(mrb, wslay_event_context_cl, "close_received?",       mrb_wslay_event_get_close_received,             MRB_ARGS_NONE());
