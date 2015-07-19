@@ -2,7 +2,7 @@ module Wslay
   module Event
     class OnMsgRecvArg < Struct.new(:rsv, :opcode, :msg, :status_code) do
         def to_str
-          msg.dup
+          msg
         end
       end
     end
