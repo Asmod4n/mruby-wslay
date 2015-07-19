@@ -55,17 +55,20 @@ mrb_wslay_event_recv_callback(wslay_event_context_ptr ctx,
   struct mrb_jmpbuf c_jmp;
 
   mrb_int ret = -1;
-
+  errno = 0;
   MRB_TRY(&c_jmp) {
     data->mrb->jmp = &c_jmp;
 
-    mrb_value buf_obj = mrb_yield(data->mrb,
-      mrb_iv_get(data->mrb, data->handle,
-        mrb_intern_lit(data->mrb, "@recv_callback")),
-      mrb_fixnum_value(len));
+    mrb_value argv[2];
+    argv[0] = mrb_cptr_value(data->mrb, buf);
+    argv[1] = mrb_fixnum_value(len);
 
-    if (mrb_nil_p(buf_obj))
-      wslay_event_set_error(ctx, WSLAY_ERR_WOULDBLOCK);
+    mrb_value buf_obj = mrb_yield_argv(data->mrb,
+      mrb_iv_get(data->mrb, data->handle,
+        mrb_intern_lit(data->mrb, "@recv_callback")), NELEMS(argv), argv);
+
+    if (mrb_fixnum_p(buf_obj))
+      ret = mrb_int(data->mrb, buf_obj);
     else {
       buf_obj = mrb_str_to_str(data->mrb, buf_obj);
       ret = RSTRING_LEN(buf_obj);
@@ -76,7 +79,12 @@ mrb_wslay_event_recv_callback(wslay_event_context_ptr ctx,
     data->mrb->jmp = prev_jmp;
   } MRB_CATCH(&c_jmp) {
     data->mrb->jmp = prev_jmp;
-    wslay_event_set_error(ctx, WSLAY_ERR_CALLBACK_FAILURE);
+    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      data->mrb->exc = NULL;
+      wslay_event_set_error(ctx, WSLAY_ERR_WOULDBLOCK);
+    }
+    else
+      wslay_event_set_error(ctx, WSLAY_ERR_CALLBACK_FAILURE);
   } MRB_END_EXC(&c_jmp);
 
   mrb_gc_arena_restore(data->mrb, ai);
@@ -97,7 +105,7 @@ mrb_wslay_event_send_callback(wslay_event_context_ptr ctx,
   struct mrb_jmpbuf *prev_jmp = data->mrb->jmp;
   struct mrb_jmpbuf c_jmp;
   mrb_int ret = -1;
-
+  errno = 0;
   MRB_TRY(&c_jmp) {
     data->mrb->jmp = &c_jmp;
 
@@ -106,17 +114,18 @@ mrb_wslay_event_send_callback(wslay_event_context_ptr ctx,
           mrb_intern_lit(data->mrb, "@send_callback")),
         mrb_str_new_static(data->mrb, (const char *) buf, len));
 
-    if (mrb_nil_p(send_ret))
-      wslay_event_set_error(ctx, WSLAY_ERR_WOULDBLOCK);
-    else {
-      ret = mrb_int(data->mrb, send_ret);
-      mrb_assert(ret > 0 && ret <= len);
-    }
+    ret = mrb_int(data->mrb, send_ret);
+    mrb_assert(ret > 0 && ret <= len);
 
     data->mrb->jmp = prev_jmp;
   } MRB_CATCH(&c_jmp) {
     data->mrb->jmp = prev_jmp;
-    wslay_event_set_error(ctx, WSLAY_ERR_CALLBACK_FAILURE);
+    if (errno == EAGAIN || errno == EWOULDBLOCK) {
+      data->mrb->exc = NULL;
+      wslay_event_set_error(ctx, WSLAY_ERR_WOULDBLOCK);
+    }
+    else
+      wslay_event_set_error(ctx, WSLAY_ERR_CALLBACK_FAILURE);
   } MRB_END_EXC(&c_jmp);
 
   mrb_gc_arena_restore(data->mrb, ai);
@@ -149,7 +158,9 @@ mrb_wslay_event_genmask_callback(wslay_event_context_ptr ctx,
       mrb_iv_get(data->mrb, data->handle,
         mrb_intern_lit(data->mrb, "@genmask_callback")), NELEMS(args), args);
 
-    if (mrb_type(buf_obj) != MRB_TT_CPTR) {
+    if (mrb_fixnum_p(buf_obj))
+      mrb_assert(mrb_int(data->mrb, buf_obj) == len);
+    else {
       buf_obj = mrb_str_to_str(data->mrb, buf_obj);
       mrb_assert(RSTRING_LEN(buf_obj) == len);
       memcpy(buf, (uint8_t *) RSTRING_PTR(buf_obj), RSTRING_LEN(buf_obj));
