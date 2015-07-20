@@ -158,9 +158,7 @@ mrb_wslay_event_genmask_callback(wslay_event_context_ptr ctx,
       mrb_iv_get(data->mrb, data->handle,
         mrb_intern_lit(data->mrb, "@genmask_callback")), NELEMS(args), args);
 
-    if (mrb_fixnum_p(buf_obj))
-      mrb_assert(mrb_int(data->mrb, buf_obj) == len);
-    else {
+    if (!mrb_nil_p(buf_obj)) {
       buf_obj = mrb_str_to_str(data->mrb, buf_obj);
       mrb_assert(RSTRING_LEN(buf_obj) == len);
       memcpy(buf, (uint8_t *) RSTRING_PTR(buf_obj), RSTRING_LEN(buf_obj));
