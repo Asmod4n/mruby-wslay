@@ -55,7 +55,6 @@ mrb_wslay_event_recv_callback(wslay_event_context_ptr ctx,
   struct mrb_jmpbuf c_jmp;
 
   mrb_int ret = -1;
-  errno = 0;
   MRB_TRY(&c_jmp) {
     data->mrb->jmp = &c_jmp;
 
@@ -63,6 +62,7 @@ mrb_wslay_event_recv_callback(wslay_event_context_ptr ctx,
     argv[0] = mrb_cptr_value(data->mrb, buf);
     argv[1] = mrb_fixnum_value(len);
 
+    errno = 0;
     mrb_value buf_obj = mrb_yield_argv(data->mrb,
       mrb_iv_get(data->mrb, data->handle,
         mrb_intern_lit(data->mrb, "@recv_callback")), NELEMS(argv), argv);
@@ -105,10 +105,10 @@ mrb_wslay_event_send_callback(wslay_event_context_ptr ctx,
   struct mrb_jmpbuf *prev_jmp = data->mrb->jmp;
   struct mrb_jmpbuf c_jmp;
   mrb_int ret = -1;
-  errno = 0;
   MRB_TRY(&c_jmp) {
     data->mrb->jmp = &c_jmp;
 
+    errno = 0;
     mrb_value send_ret = mrb_yield(data->mrb,
         mrb_iv_get(data->mrb, data->handle,
           mrb_intern_lit(data->mrb, "@send_callback")),
@@ -138,43 +138,10 @@ mrb_wslay_event_genmask_callback(wslay_event_context_ptr ctx,
   uint8_t *buf, size_t len,
   void *user_data)
 {
-  mrb_assert(user_data);
 
-  mrb_wslay_user_data *data = (mrb_wslay_user_data *) user_data;
-  int ai = mrb_gc_arena_save(data->mrb);
+  randombytes_buf(buf, len);
 
-  struct mrb_jmpbuf *prev_jmp = data->mrb->jmp;
-  struct mrb_jmpbuf c_jmp;
-  int ret = -1;
-
-  MRB_TRY(&c_jmp) {
-    data->mrb->jmp = &c_jmp;
-
-    mrb_value args[2];
-    args[0] = mrb_cptr_value(data->mrb, buf);
-    args[1] = mrb_fixnum_value(len);
-
-    mrb_value buf_obj = mrb_yield_argv(data->mrb,
-      mrb_iv_get(data->mrb, data->handle,
-        mrb_intern_lit(data->mrb, "@genmask_callback")), NELEMS(args), args);
-
-    if (!mrb_nil_p(buf_obj)) {
-      buf_obj = mrb_str_to_str(data->mrb, buf_obj);
-      mrb_assert(RSTRING_LEN(buf_obj) == len);
-      memcpy(buf, (uint8_t *) RSTRING_PTR(buf_obj), RSTRING_LEN(buf_obj));
-    }
-
-    ret = 0;
-
-    data->mrb->jmp = prev_jmp;
-  } MRB_CATCH(&c_jmp) {
-    data->mrb->jmp = prev_jmp;
-    wslay_event_set_error(ctx, WSLAY_ERR_CALLBACK_FAILURE);
-  } MRB_END_EXC(&c_jmp);
-
-  mrb_gc_arena_restore(data->mrb, ai);
-
-  return ret;
+  return 0;
 }
 
 static mrb_value
@@ -425,8 +392,6 @@ mrb_wslay_event_context_client_init(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "recv_callback missing");
   if (mrb_type(mrb_iv_get(mrb, callbacks_obj, mrb_intern_lit(mrb, "@send_callback"))) != MRB_TT_PROC)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "send_callback missing");
-  if (mrb_type(mrb_iv_get(mrb, callbacks_obj, mrb_intern_lit(mrb, "@genmask_callback"))) != MRB_TT_PROC)
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "genmask_callback missing");
   if (mrb_type(mrb_iv_get(mrb, callbacks_obj, mrb_intern_lit(mrb, "@on_msg_recv_callback"))) != MRB_TT_PROC)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "on_msg_recv_callback missing");
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "callbacks"), callbacks_obj);
@@ -543,6 +508,10 @@ mrb_mruby_wslay_gem_init(mrb_state* mrb) {
 
   wslay_event_context_client_cl = mrb_define_class_under(mrb, wslay_event_context_cl, "Client", wslay_event_context_cl);
   mrb_define_method(mrb, wslay_event_context_client_cl, "initialize", mrb_wslay_event_context_client_init, MRB_ARGS_REQ(1));
+
+  errno = 0;
+  if (sodium_init() == -1)
+    mrb_sys_fail(mrb, "sodium_init");
 }
 
 void

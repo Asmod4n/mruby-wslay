@@ -11,6 +11,8 @@
 #include <mruby/hash.h>
 #include <mruby/array.h>
 #include <errno.h>
+#include <sodium.h>
+#include <mruby/error.h>
 
 #define MRB_WSLAY_ERROR(err) mrb_hash_get(mrb, mrb_const_get(mrb, mrb_obj_value(mrb_module_get(mrb, "Wslay")), mrb_intern_lit(mrb, "Error")), err)
 #define MRB_GET_OPCODE(opcode) mrb_hash_get(mrb, mrb_const_get(mrb, mrb_obj_value(mrb_module_get(mrb, "Wslay")), mrb_intern_lit(mrb, "OpCode")), opcode)
