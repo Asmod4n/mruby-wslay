@@ -2,6 +2,8 @@
 
 wslay is a callback based WebSocket Client and Server library written in C, it doesn't come with a event loop or does I/O operations on its own. https://github.com/tatsuhiro-t/wslay
 
+Currently this wrapper needs https://github.com/jedisct1/libsodium somewhere your compiler can find it besides wslay.
+
 The following callbacks are exposed in this wrapper
 
 ```ruby
