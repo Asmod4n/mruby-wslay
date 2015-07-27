@@ -72,8 +72,9 @@ mrb_wslay_event_recv_callback(wslay_event_context_ptr ctx,
     else {
       buf_obj = mrb_str_to_str(data->mrb, buf_obj);
       ret = RSTRING_LEN(buf_obj);
-      mrb_assert(ret > 0 && ret <= len);
-      memcpy(buf, (uint8_t *) RSTRING_PTR(buf_obj), ret);
+      mrb_assert(ret >= 0 && ret <= len);
+      if (ret > 0)
+        memcpy(buf, (uint8_t *) RSTRING_PTR(buf_obj), ret);
     }
 
     data->mrb->jmp = prev_jmp;
@@ -225,13 +226,21 @@ mrb_wslay_event_queue_msg(mrb_state *mrb, mrb_value self)
   mrb_wslay_user_data *data = (mrb_wslay_user_data *) DATA_PTR(self);
   mrb_assert(data);
 
-  mrb_sym opcode;
   char *msg;
   mrb_int msg_length;
+  mrb_sym opcode;
 
-  mrb_get_args(mrb, "ns", &opcode, &msg, &msg_length);
+  int argc = mrb_get_args(mrb, "s|n", &msg, &msg_length, &opcode);
+  mrb_int opc;
 
-  mrb_int opc = mrb_int(mrb, MRB_GET_OPCODE(mrb_symbol_value(opcode)));
+  if (argc == 1) {
+    if (is_utf8((unsigned char *) msg, msg_length) == 0)
+      opc = WSLAY_TEXT_FRAME;
+    else
+      opc = WSLAY_BINARY_FRAME;
+  }
+  else
+    opc = mrb_fixnum(MRB_GET_OPCODE(mrb_symbol_value(opcode)));
 
   struct wslay_event_msg msgarg = {
     opc, (const uint8_t *) msg, msg_length
