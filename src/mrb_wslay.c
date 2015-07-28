@@ -68,7 +68,7 @@ mrb_wslay_event_recv_callback(wslay_event_context_ptr ctx,
         mrb_intern_lit(data->mrb, "@recv_callback")), NELEMS(argv), argv);
 
     if (mrb_fixnum_p(buf_obj))
-      ret = mrb_int(data->mrb, buf_obj);
+      ret = mrb_fixnum(buf_obj);
     else {
       buf_obj = mrb_str_to_str(data->mrb, buf_obj);
       ret = RSTRING_LEN(buf_obj);
@@ -110,13 +110,13 @@ mrb_wslay_event_send_callback(wslay_event_context_ptr ctx,
     data->mrb->jmp = &c_jmp;
 
     errno = 0;
-    mrb_value send_ret = mrb_yield(data->mrb,
+    ret = mrb_int(data->mrb,
+      mrb_yield(data->mrb,
         mrb_iv_get(data->mrb, data->handle,
           mrb_intern_lit(data->mrb, "@send_callback")),
-        mrb_str_new_static(data->mrb, (const char *) buf, len));
+        mrb_str_new_static(data->mrb, (const char *) buf, len)));
 
-    ret = mrb_int(data->mrb, send_ret);
-    mrb_assert(ret > 0 && ret <= len);
+    mrb_assert(ret >= 0 && ret <= len);
 
     data->mrb->jmp = prev_jmp;
   } MRB_CATCH(&c_jmp) {
@@ -139,7 +139,6 @@ mrb_wslay_event_genmask_callback(wslay_event_context_ptr ctx,
   uint8_t *buf, size_t len,
   void *user_data)
 {
-
   randombytes_buf(buf, len);
 
   return 0;
@@ -276,7 +275,7 @@ mrb_wslay_event_queue_close(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "n|s", &status_code, &reason, &reason_length);
 
-  mrb_int stc = mrb_int(mrb, MRB_GET_STATUSCODE(mrb_symbol_value(status_code)));
+  mrb_int stc = mrb_fixnum(MRB_GET_STATUSCODE(mrb_symbol_value(status_code)));
 
   int err = wslay_event_queue_close(data->ctx, stc, (const uint8_t *) reason, reason_length);
   if (err == WSLAY_ERR_NOMEM) {
