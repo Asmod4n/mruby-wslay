@@ -350,6 +350,24 @@ mrb_wslay_event_get_status_code_sent(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mrb_wslay_event_get_queued_msg_count(mrb_state *mrb, mrb_value self)
+{
+  mrb_wslay_user_data *data = (mrb_wslay_user_data *) DATA_PTR(self);
+  mrb_assert(data);
+
+  return mrb_fixnum_value(wslay_event_get_queued_msg_count(data->ctx));
+}
+
+static mrb_value
+mrb_wslay_event_get_queued_msg_length(mrb_state *mrb, mrb_value self)
+{
+  mrb_wslay_user_data *data = (mrb_wslay_user_data *) DATA_PTR(self);
+  mrb_assert(data);
+
+  return mrb_fixnum_value(wslay_event_get_queued_msg_length(data->ctx));
+}
+
+static mrb_value
 mrb_wslay_event_context_server_init(mrb_state *mrb, mrb_value self)
 {
   mrb_value callbacks_obj;
@@ -510,6 +528,8 @@ mrb_mruby_wslay_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, wslay_event_context_cl, "close_sent?",           mrb_wslay_event_get_close_sent,                 MRB_ARGS_NONE());
   mrb_define_method(mrb, wslay_event_context_cl, "status_code_received",  mrb_wslay_event_get_status_code_received,       MRB_ARGS_NONE());
   mrb_define_method(mrb, wslay_event_context_cl, "status_code_sent",      mrb_wslay_event_get_status_code_sent,           MRB_ARGS_NONE());
+  mrb_define_method(mrb, wslay_event_context_cl, "queued_msg_count",      mrb_wslay_event_get_queued_msg_count,           MRB_ARGS_NONE());
+  mrb_define_method(mrb, wslay_event_context_cl, "queued_msg_length",     mrb_wslay_event_get_queued_msg_length,          MRB_ARGS_NONE());
 
   wslay_event_context_server_cl = mrb_define_class_under(mrb, wslay_event_context_cl, "Server", wslay_event_context_cl);
   mrb_define_method(mrb, wslay_event_context_server_cl, "initialize", mrb_wslay_event_context_server_init, MRB_ARGS_REQ(1));
