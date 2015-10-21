@@ -185,8 +185,7 @@ mrb_wslay_event_recv(mrb_state *mrb, mrb_value self)
 
   int err = wslay_event_recv(data->ctx);
   if (err == WSLAY_ERR_NOMEM) {
-    mrb->out_of_memory = TRUE;
-    mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
+    mrb_sys_fail(mrb, "wslay_event_recv");
   }
   else
   if (err == WSLAY_ERR_CALLBACK_FAILURE)
@@ -206,8 +205,7 @@ mrb_wslay_event_send(mrb_state *mrb, mrb_value self)
 
   int err = wslay_event_send(data->ctx);
   if (err == WSLAY_ERR_NOMEM) {
-    mrb->out_of_memory = TRUE;
-    mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
+    mrb_sys_fail(mrb, "wslay_event_send");
   }
   else
   if (err == WSLAY_ERR_CALLBACK_FAILURE)
@@ -247,8 +245,7 @@ mrb_wslay_event_queue_msg(mrb_state *mrb, mrb_value self)
 
   int err = wslay_event_queue_msg(data->ctx, &msgarg);
   if (err == WSLAY_ERR_NOMEM) {
-    mrb->out_of_memory = TRUE;
-    mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
+    mrb_sys_fail(mrb, "wslay_event_queue_msg");
   }
   else
   if (err == WSLAY_ERR_NO_MORE_MSG)
@@ -279,8 +276,7 @@ mrb_wslay_event_queue_close(mrb_state *mrb, mrb_value self)
 
   int err = wslay_event_queue_close(data->ctx, stc, (const uint8_t *) reason, reason_length);
   if (err == WSLAY_ERR_NOMEM) {
-    mrb->out_of_memory = TRUE;
-    mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
+    mrb_sys_fail(mrb, "wslay_event_queue_close");
   }
   else
   if (err == WSLAY_ERR_NO_MORE_MSG)
@@ -397,8 +393,7 @@ mrb_wslay_event_context_server_init(mrb_state *mrb, mrb_value self)
 
   int err = wslay_event_context_server_init(&data->ctx, &server_callbacks, data);
   if (err == WSLAY_ERR_NOMEM) {
-    mrb->out_of_memory = TRUE;
-    mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
+    mrb_sys_fail(mrb, "wslay_event_context_server_init");
   }
   else
   if (err != 0)
@@ -437,8 +432,7 @@ mrb_wslay_event_context_client_init(mrb_state *mrb, mrb_value self)
 
   int err = wslay_event_context_client_init(&data->ctx, &client_callbacks, data);
   if (err == WSLAY_ERR_NOMEM) {
-    mrb->out_of_memory = TRUE;
-    mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
+    mrb_sys_fail(mrb, "wslay_event_context_client_init");
   }
   else
   if (err != 0)
