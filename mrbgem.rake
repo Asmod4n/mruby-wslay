@@ -3,4 +3,5 @@
   spec.author  = 'Hendrik Beskow'
   spec.summary = 'mruby wrapper for wslay'
   spec.linker.libraries << 'wslay' << 'sodium'
+  spec.add_dependency 'mruby-errno'
 end
