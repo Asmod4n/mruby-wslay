@@ -12,6 +12,7 @@ wslay_callbacks = Wslay::Event::Callbacks.new
 wslay_callbacks.recv_callback do |buf, len|
   # when wslay wants to read data
   # buf is a cptr, if your I/O gem can write to a C pointer you have to write at most len bytes into it
+  # and return the bytes written
   # or else return a mruby String or a object which can be converted into a String via to_str
   # and be up to len bytes long
   # the I/O object must be in non blocking mode and return EAGAIN/EWOULDBLOCK when there is nothing to read
