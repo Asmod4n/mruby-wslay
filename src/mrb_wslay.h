@@ -23,7 +23,7 @@
 typedef struct {
   wslay_event_context_ptr ctx;
   mrb_state *mrb;
-  mrb_value handle;
+  mrb_value callbacks;
 } mrb_wslay_user_data;
 
 static void
