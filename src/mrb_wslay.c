@@ -70,7 +70,7 @@ mrb_wslay_event_recv_callback(wslay_event_context_ptr ctx,
     } else {
       buf_obj = mrb_str_to_str(mrb, buf_obj);
       ret = RSTRING_LEN(buf_obj);
-      if (ret < 0 || ret > len) {
+      if (ret < 0 || ret > len) {
         mrb_raise(mrb, E_RANGE_ERROR, "returned buf doesn't fit");
       }
       if (ret > 0) {
