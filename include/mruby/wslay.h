@@ -1,4 +1,4 @@
-﻿#if defined(MRB_INT16)
+﻿#ifdef MRB_INT16
 # error MRB_INT16 is too small for mruby-wslay.
 #endif
 
@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-#define E_WSLAY_ERROR mrb_class_get_under(mrb, mrb_module_get(mrb, "Wslay"), "Err")
+#define E_WSLAY_ERROR (mrb_class_get_under(mrb, mrb_module_get(mrb, "Wslay"), "Err"))
 
 #ifdef __cplusplus
 }

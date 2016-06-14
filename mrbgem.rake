@@ -2,6 +2,8 @@
   spec.license = 'Apache-2'
   spec.author  = 'Hendrik Beskow'
   spec.summary = 'mruby wrapper for wslay'
-  spec.linker.libraries << 'sodium'
+  spec.add_dependency 'mruby-libsodium'
   spec.add_dependency 'mruby-errno'
+  spec.add_dependency 'mruby-struct'
+  spec.add_dependency 'mruby-string-is-utf8'
 end

@@ -26,9 +26,8 @@ mrb_wslay_event_on_msg_recv_callback(wslay_event_context_ptr ctx,
         mrb_module_get_under(mrb,
           mrb_module_get(mrb, "Wslay"), "Event"), "OnMsgRecvArg"), NELEMS(argv), argv);
 
-    mrb_yield(mrb,
-      mrb_iv_get(mrb, data->callbacks, mrb_intern_lit(mrb, "@on_msg_recv_callback")),
-      on_msg_recv_arg);
+    mrb_assert(mrb_type(data->on_msg_recv_callback) == MRB_TT_PROC);
+    mrb_yield(mrb, data->on_msg_recv_callback, on_msg_recv_arg);
 
     mrb_gc_arena_restore(mrb, ai);
 
@@ -61,20 +60,19 @@ mrb_wslay_event_recv_callback(wslay_event_context_ptr ctx,
     argv[1] = mrb_fixnum_value(len);
 
     errno = 0;
-    mrb_value buf_obj = mrb_yield_argv(mrb,
-      mrb_iv_get(mrb, data->callbacks,
-        mrb_intern_lit(mrb, "@recv_callback")), NELEMS(argv), argv);
+    mrb_assert(mrb_type(data->recv_callback) == MRB_TT_PROC);
+    mrb_value buf_obj = mrb_yield_argv(mrb, data->recv_callback, NELEMS(argv), argv);
 
     if (mrb_fixnum_p(buf_obj)) {
       ret = mrb_fixnum(buf_obj);
     } else {
       buf_obj = mrb_str_to_str(mrb, buf_obj);
       ret = RSTRING_LEN(buf_obj);
-      if (ret < 0 || ret > len) {
+      if (ret < 0||ret > len) {
         mrb_raise(mrb, E_RANGE_ERROR, "returned buf doesn't fit");
       }
       if (ret > 0) {
-        memcpy(buf, (uint8_t *) RSTRING_PTR(buf_obj), ret);
+        memmove(buf, (uint8_t *) RSTRING_PTR(buf_obj), ret);
       }
     }
 
@@ -84,7 +82,7 @@ mrb_wslay_event_recv_callback(wslay_event_context_ptr ctx,
     if (mrb_obj_is_kind_of(mrb,
         mrb_obj_value(mrb->exc),
             mrb_class_get_under(mrb,
-                mrb_module_get(mrb, "Errno"), "EAGAIN")) ||
+                mrb_module_get(mrb, "Errno"), "EAGAIN"))||
     mrb_obj_is_kind_of(mrb,
         mrb_obj_value(mrb->exc),
             mrb_class_get_under(mrb,
@@ -118,13 +116,12 @@ mrb_wslay_event_send_callback(wslay_event_context_ptr ctx,
 
     errno = 0;
     mrb_value buf_obj = mrb_str_new_static(mrb, (const char *) buf, len);
-    mrb_value sent = mrb_yield(mrb,
-      mrb_iv_get(mrb, data->callbacks, mrb_intern_lit(mrb, "@send_callback")),
-      buf_obj);
+    mrb_assert(mrb_type(data->send_callback) == MRB_TT_PROC);
+    mrb_value sent = mrb_yield(mrb, data->send_callback, buf_obj);
 
     ret = mrb_int(mrb, sent);
 
-    mrb_assert(ret >= 0 && ret <= len);
+    mrb_assert(ret >= 0&&ret <= len);
 
     mrb->jmp = prev_jmp;
   } MRB_CATCH(&c_jmp) {
@@ -132,7 +129,7 @@ mrb_wslay_event_send_callback(wslay_event_context_ptr ctx,
     if (mrb_obj_is_kind_of(mrb,
         mrb_obj_value(mrb->exc),
             mrb_class_get_under(mrb,
-                mrb_module_get(mrb, "Errno"), "EAGAIN")) ||
+                mrb_module_get(mrb, "Errno"), "EAGAIN"))||
     mrb_obj_is_kind_of(mrb,
         mrb_obj_value(mrb->exc),
             mrb_class_get_under(mrb,
@@ -238,15 +235,13 @@ mrb_wslay_event_queue_msg(mrb_state *mrb, mrb_value self)
   mrb_wslay_user_data *data = (mrb_wslay_user_data *) DATA_PTR(self);
   mrb_assert(data);
 
-  char *msg;
-  mrb_int msg_length;
+  mrb_value msg;
   mrb_sym opcode;
 
-  int argc = mrb_get_args(mrb, "s|n", &msg, &msg_length, &opcode);
   mrb_int opc;
 
-  if (argc == 1) {
-    if (is_utf8((unsigned char *) msg, msg_length) == 0) {
+  if (mrb_get_args(mrb, "S|n", &msg, &opcode) == 1) {
+    if (mrb_str_is_utf8(msg)) {
       opc = WSLAY_TEXT_FRAME;
     } else {
       opc = WSLAY_BINARY_FRAME;
@@ -256,7 +251,7 @@ mrb_wslay_event_queue_msg(mrb_state *mrb, mrb_value self)
   }
 
   struct wslay_event_msg msgarg = {
-    opc, (const uint8_t *) msg, msg_length
+    opc, (const uint8_t *) RSTRING_PTR(msg), RSTRING_LEN(msg)
   };
 
   int err = wslay_event_queue_msg(data->ctx, &msgarg);
@@ -362,18 +357,27 @@ mrb_wslay_event_context_server_init(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "o", &callbacks_obj);
 
-  if (mrb_type(mrb_iv_get(mrb, callbacks_obj, mrb_intern_lit(mrb, "@recv_callback"))) != MRB_TT_PROC)
+  mrb_value recv_callback, send_callback, on_msg_recv_callback;
+  recv_callback = mrb_iv_get(mrb, callbacks_obj, mrb_intern_lit(mrb, "@recv_callback"));
+  if (mrb_type(recv_callback) != MRB_TT_PROC) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "recv_callback missing");
-  if (mrb_type(mrb_iv_get(mrb, callbacks_obj, mrb_intern_lit(mrb, "@send_callback"))) != MRB_TT_PROC)
+  }
+  send_callback = mrb_iv_get(mrb, callbacks_obj, mrb_intern_lit(mrb, "@send_callback"));
+  if (mrb_type(send_callback) != MRB_TT_PROC) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "send_callback missing");
-  if (mrb_type(mrb_iv_get(mrb, callbacks_obj, mrb_intern_lit(mrb, "@on_msg_recv_callback"))) != MRB_TT_PROC)
+  }
+  on_msg_recv_callback = mrb_iv_get(mrb, callbacks_obj, mrb_intern_lit(mrb, "@on_msg_recv_callback"));
+  if (mrb_type(on_msg_recv_callback) != MRB_TT_PROC) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "on_msg_recv_callback missing");
+  }
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "callbacks"), callbacks_obj);
   mrb_wslay_user_data *data = (mrb_wslay_user_data *) mrb_malloc(mrb, sizeof(mrb_wslay_user_data));
   data->mrb = mrb;
-  data->callbacks = callbacks_obj;
+  data->recv_callback = recv_callback;
+  data->send_callback = send_callback;
+  data->on_msg_recv_callback = on_msg_recv_callback;
   mrb_data_init(self, data, &mrb_wslay_user_data_type);
-  static struct wslay_event_callbacks server_callbacks = {
+  struct wslay_event_callbacks server_callbacks = {
     mrb_wslay_event_recv_callback,
     mrb_wslay_event_send_callback,
     NULL,
@@ -401,21 +405,27 @@ mrb_wslay_event_context_client_init(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "o", &callbacks_obj);
 
-  if (mrb_type(mrb_iv_get(mrb, callbacks_obj, mrb_intern_lit(mrb, "@recv_callback"))) != MRB_TT_PROC) {
+  mrb_value recv_callback, send_callback, on_msg_recv_callback;
+  recv_callback = mrb_iv_get(mrb, callbacks_obj, mrb_intern_lit(mrb, "@recv_callback"));
+  if (mrb_type(recv_callback) != MRB_TT_PROC) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "recv_callback missing");
   }
-  if (mrb_type(mrb_iv_get(mrb, callbacks_obj, mrb_intern_lit(mrb, "@send_callback"))) != MRB_TT_PROC) {
+  send_callback = mrb_iv_get(mrb, callbacks_obj, mrb_intern_lit(mrb, "@send_callback"));
+  if (mrb_type(send_callback) != MRB_TT_PROC) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "send_callback missing");
   }
-  if (mrb_type(mrb_iv_get(mrb, callbacks_obj, mrb_intern_lit(mrb, "@on_msg_recv_callback"))) != MRB_TT_PROC) {
+  on_msg_recv_callback = mrb_iv_get(mrb, callbacks_obj, mrb_intern_lit(mrb, "@on_msg_recv_callback"));
+  if (mrb_type(on_msg_recv_callback) != MRB_TT_PROC) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "on_msg_recv_callback missing");
   }
   mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "callbacks"), callbacks_obj);
   mrb_wslay_user_data *data = (mrb_wslay_user_data *) mrb_malloc(mrb, sizeof(mrb_wslay_user_data));
   data->mrb = mrb;
-  data->callbacks = callbacks_obj;
+  data->recv_callback = recv_callback;
+  data->send_callback = send_callback;
+  data->on_msg_recv_callback = on_msg_recv_callback;
   mrb_data_init(self, data, &mrb_wslay_user_data_type);
-  static struct wslay_event_callbacks client_callbacks = {
+  struct wslay_event_callbacks client_callbacks = {
     mrb_wslay_event_recv_callback,
     mrb_wslay_event_send_callback,
     mrb_wslay_event_genmask_callback,
@@ -436,14 +446,48 @@ mrb_wslay_event_context_client_init(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+static mrb_value
+mrb_wslay_get_rsv1(mrb_state *mrb, mrb_value self)
+{
+  mrb_int rsv;
+
+  mrb_get_args(mrb, "i", &rsv);
+
+  return mrb_fixnum_value(wslay_get_rsv1(rsv));
+}
+
+static mrb_value
+mrb_wslay_get_rsv2(mrb_state *mrb, mrb_value self)
+{
+  mrb_int rsv;
+
+  mrb_get_args(mrb, "i", &rsv);
+
+  return mrb_fixnum_value(wslay_get_rsv2(rsv));
+}
+
+static mrb_value
+mrb_wslay_get_rsv3(mrb_state *mrb, mrb_value self)
+{
+  mrb_int rsv;
+
+  mrb_get_args(mrb, "i", &rsv);
+
+  return mrb_fixnum_value(wslay_get_rsv3(rsv));
+}
+
 void
 mrb_mruby_wslay_gem_init(mrb_state* mrb) {
   struct RClass *wslay_mod, *wslay_error_cl, *wslay_event_mod,
   *wslay_event_context_cl, *wslay_event_context_server_cl, *wslay_event_context_client_cl;
 
   wslay_mod = mrb_define_module(mrb, "Wslay");
+  mrb_define_module_function(mrb, wslay_mod, "get_rsv1", mrb_wslay_get_rsv1, MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, wslay_mod, "get_rsv2", mrb_wslay_get_rsv2, MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, wslay_mod, "get_rsv3", mrb_wslay_get_rsv3, MRB_ARGS_REQ(1));
   wslay_error_cl = mrb_define_class_under(mrb, wslay_mod, "Err", E_RUNTIME_ERROR);
   mrb_value wslay_error_hash = mrb_hash_new_capa(mrb, 9 * 2);
+  int arena_index = mrb_gc_arena_save(mrb);
   mrb_define_const(mrb, wslay_mod, "Error", wslay_error_hash);
   mrb_hash_set(mrb, wslay_error_hash, mrb_fixnum_value(WSLAY_ERR_WANT_READ), mrb_symbol_value(mrb_intern_lit(mrb, "want_read")));
   mrb_hash_set(mrb, wslay_error_hash, mrb_fixnum_value(WSLAY_ERR_WANT_WRITE), mrb_symbol_value(mrb_intern_lit(mrb, "want_write")));
@@ -460,8 +504,10 @@ mrb_mruby_wslay_gem_init(mrb_state* mrb) {
     mrb_hash_set(mrb, wslay_error_hash,
       mrb_hash_get(mrb, wslay_error_hash, key), key);
   }
+  mrb_gc_arena_restore(mrb, arena_index);
 
   mrb_value wslay_status_code_hash = mrb_hash_new_capa(mrb, 12 * 2);
+  arena_index = mrb_gc_arena_save(mrb);
   mrb_define_const(mrb, wslay_mod, "StatusCode", wslay_status_code_hash);
   mrb_hash_set(mrb, wslay_status_code_hash, mrb_fixnum_value(WSLAY_CODE_NORMAL_CLOSURE), mrb_symbol_value(mrb_intern_lit(mrb, "normal_closure")));
   mrb_hash_set(mrb, wslay_status_code_hash, mrb_fixnum_value(WSLAY_CODE_GOING_AWAY), mrb_symbol_value(mrb_intern_lit(mrb, "going_away")));
@@ -481,13 +527,17 @@ mrb_mruby_wslay_gem_init(mrb_state* mrb) {
     mrb_hash_set(mrb, wslay_status_code_hash,
       mrb_hash_get(mrb, wslay_status_code_hash, key), key);
   }
+  mrb_gc_arena_restore(mrb, arena_index);
 
   mrb_value io_flags_hash = mrb_hash_new_capa(mrb, 2);
+  arena_index = mrb_gc_arena_save(mrb);
   mrb_define_const(mrb, wslay_mod, "IoFlags", io_flags_hash);
   mrb_hash_set(mrb, io_flags_hash, mrb_fixnum_value(WSLAY_MSG_MORE), mrb_symbol_value(mrb_intern_lit(mrb, "msg_more")));
   mrb_hash_set(mrb, io_flags_hash, mrb_symbol_value(mrb_intern_lit(mrb, "msg_more")), mrb_fixnum_value(WSLAY_MSG_MORE));
+  mrb_gc_arena_restore(mrb, arena_index);
 
   mrb_value wslay_opcode_hash = mrb_hash_new_capa(mrb, 6 * 2);
+  arena_index = mrb_gc_arena_save(mrb);
   mrb_define_const(mrb, wslay_mod, "OpCode", wslay_opcode_hash);
   mrb_hash_set(mrb, wslay_opcode_hash, mrb_fixnum_value(WSLAY_CONTINUATION_FRAME), mrb_symbol_value(mrb_intern_lit(mrb, "continuation_frame")));
   mrb_hash_set(mrb, wslay_opcode_hash, mrb_fixnum_value(WSLAY_TEXT_FRAME), mrb_symbol_value(mrb_intern_lit(mrb, "text_frame")));
@@ -501,6 +551,7 @@ mrb_mruby_wslay_gem_init(mrb_state* mrb) {
     mrb_hash_set(mrb, wslay_opcode_hash,
       mrb_hash_get(mrb, wslay_opcode_hash, key), key);
   }
+  mrb_gc_arena_restore(mrb, arena_index);
 
   wslay_event_mod = mrb_define_module_under(mrb, wslay_mod, "Event");
   wslay_event_context_cl = mrb_define_class_under(mrb, wslay_event_mod, "Context", mrb->object_class);
