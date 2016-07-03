@@ -17,7 +17,7 @@
 
 #define MRB_WSLAY_ERROR(err) (mrb_hash_get(mrb, mrb_const_get(mrb, mrb_obj_value(mrb_module_get(mrb, "Wslay")), mrb_intern_lit(mrb, "Error")), err))
 #define MRB_GET_OPCODE(opcode) (mrb_hash_get(mrb, mrb_const_get(mrb, mrb_obj_value(mrb_module_get(mrb, "Wslay")), mrb_intern_lit(mrb, "OpCode")), opcode))
-#define MRB_GET_STATUSCODE(status_code) (mrb_hash_get(mrb, mrb_const_get(mrb, mrb_obj_value(mrb_module_get(mrb, "Wslay")), mrb_intern_lit(mrb, "StatusCode ")), status_code))
+#define MRB_GET_STATUSCODE(status_code) (mrb_hash_get(mrb, mrb_const_get(mrb, mrb_obj_value(mrb_module_get(mrb, "Wslay")), mrb_intern_lit(mrb, "StatusCode")), status_code))
 #define NELEMS(x) (sizeof(x) / sizeof((x)[0]))
 
 typedef struct {
