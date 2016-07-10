@@ -1,4 +1,4 @@
-﻿#ifndef MRB_WSLAY_H
+#ifndef MRB_WSLAY_H
 #define MRB_WSLAY_H
 
 #include <wslay/wslay.h>
@@ -14,6 +14,7 @@
 #include <errno.h>
 #include <sodium.h>
 #include <mruby/error.h>
+#include <mruby/sysrandom.h>
 
 #define MRB_WSLAY_ERROR(err) (mrb_hash_get(mrb, mrb_const_get(mrb, mrb_obj_value(mrb_module_get(mrb, "Wslay")), mrb_intern_lit(mrb, "Error")), err))
 #define MRB_GET_OPCODE(opcode) (mrb_hash_get(mrb, mrb_const_get(mrb, mrb_obj_value(mrb_module_get(mrb, "Wslay")), mrb_intern_lit(mrb, "OpCode")), opcode))

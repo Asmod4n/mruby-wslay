@@ -1,4 +1,4 @@
-﻿#include "mruby/wslay.h"
+#include "mruby/wslay.h"
 #include "mrb_wslay.h"
 
 static void
@@ -151,7 +151,7 @@ mrb_wslay_event_genmask_callback(wslay_event_context_ptr ctx,
   uint8_t *buf, size_t len,
   void *user_data)
 {
-  randombytes_buf(buf, len);
+  mrb_sysrandom_buf(buf, len);
 
   return 0;
 }
@@ -568,13 +568,6 @@ mrb_mruby_wslay_gem_init(mrb_state* mrb) {
 
   wslay_event_context_client_cl = mrb_define_class_under(mrb, wslay_event_context_cl, "Client", wslay_event_context_cl);
   mrb_define_method(mrb, wslay_event_context_client_cl, "initialize", mrb_wslay_event_context_client_init, MRB_ARGS_REQ(1));
-
-  errno = 0;
-  if (sodium_init() == -1)
-    mrb_sys_fail(mrb, "sodium_init");
 }
 
-void
-mrb_mruby_wslay_gem_final(mrb_state* mrb) {
-  /* finalizer */
-}
+void mrb_mruby_wslay_gem_final(mrb_state* mrb) {}

@@ -1,4 +1,4 @@
-﻿#ifdef MRB_INT16
+#ifdef MRB_INT16
 # error MRB_INT16 is too small for mruby-wslay.
 #endif
 
