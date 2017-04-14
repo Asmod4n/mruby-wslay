@@ -13,7 +13,7 @@ wslay_callbacks.recv_callback do |buf, len|
   # and return the bytes written
   # or else return a mruby String or a object which can be converted into a String via to_str
   # and be up to len bytes long
-  # the I/O object must be in non blocking mode and return EAGAIN/EWOULDBLOCK when there is nothing to read
+  # the I/O object must be in non blocking mode and raise EAGAIN/EWOULDBLOCK when there is nothing to read
 end
 
 wslay_callbacks.on_msg_recv_callback do |msg|
@@ -31,7 +31,7 @@ end
 
 wslay_callbacks.send_callback |buf|
   # when there is data to send, you have to return the bytes send here
-  # the I/O object must be in non blocking mode and return EAGAIN/EWOULDBLOCK when sending would block
+  # the I/O object must be in non blocking mode and raise EAGAIN/EWOULDBLOCK when sending would block
 end
 ```
 
