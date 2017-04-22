@@ -377,7 +377,7 @@ mrb_wslay_event_context_server_init(mrb_state *mrb, mrb_value self)
   data->recv_callback = recv_callback;
   data->send_callback = send_callback;
   data->on_msg_recv_callback = on_msg_recv_callback;
-  struct wslay_event_callbacks server_callbacks = {
+  static struct wslay_event_callbacks server_callbacks = {
     mrb_wslay_event_recv_callback,
     mrb_wslay_event_send_callback,
     NULL,
@@ -425,7 +425,7 @@ mrb_wslay_event_context_client_init(mrb_state *mrb, mrb_value self)
   data->recv_callback = recv_callback;
   data->send_callback = send_callback;
   data->on_msg_recv_callback = on_msg_recv_callback;
-  struct wslay_event_callbacks client_callbacks = {
+  static struct wslay_event_callbacks client_callbacks = {
     mrb_wslay_event_recv_callback,
     mrb_wslay_event_send_callback,
     mrb_wslay_event_genmask_callback,
