@@ -12,7 +12,6 @@
 #include <mruby/hash.h>
 #include <mruby/array.h>
 #include <errno.h>
-#include <sodium.h>
 #include <mruby/error.h>
 #include <mruby/sysrandom.h>
 
