@@ -542,6 +542,8 @@ int wslay_event_recv(wslay_event_context_ptr ctx)
 {
   struct wslay_frame_iocb iocb;
   ssize_t r;
+  ssize_t otherr;
+
   while(ctx->read_enabled) {
     memset(&iocb, 0, sizeof(iocb));
     r = wslay_frame_recv(ctx->frame_ctx, &iocb);
@@ -733,10 +735,10 @@ int wslay_event_recv(wslay_event_context_ptr ctx)
     } else {
       if(r != WSLAY_ERR_WANT_READ ||
          (ctx->error != WSLAY_ERR_WOULDBLOCK && ctx->error != 0)) {
-        if((r = wslay_event_queue_close_wrapper(ctx, 0, NULL, 0)) != 0) {
-          return r;
+        if((otherr = wslay_event_queue_close_wrapper(ctx, 0, NULL, 0)) != 0) {
+          return otherr;
         }
-        return WSLAY_ERR_CALLBACK_FAILURE;
+        return r;
       }
       break;
     }
