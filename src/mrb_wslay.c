@@ -496,14 +496,14 @@ mrb_wslay_get_rsv3(mrb_state *mrb, mrb_value self)
 
 void
 mrb_mruby_wslay_gem_init(mrb_state* mrb) {
-  struct RClass *wslay_mod, *wslay_error_cl, *wslay_event_mod,
+  struct RClass *wslay_mod, *wslay_event_mod,
   *wslay_event_context_cl, *wslay_event_context_server_cl, *wslay_event_context_client_cl;
 
   wslay_mod = mrb_define_module(mrb, "Wslay");
   mrb_define_module_function(mrb, wslay_mod, "get_rsv1", mrb_wslay_get_rsv1, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, wslay_mod, "get_rsv2", mrb_wslay_get_rsv2, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, wslay_mod, "get_rsv3", mrb_wslay_get_rsv3, MRB_ARGS_REQ(1));
-  wslay_error_cl = mrb_define_class_under(mrb, wslay_mod, "Err", E_RUNTIME_ERROR);
+  mrb_define_class_under(mrb, wslay_mod, "Err", E_RUNTIME_ERROR);
   mrb_value wslay_error_hash = mrb_hash_new_capa(mrb, 9 * 2);
   mrb_define_const(mrb, wslay_mod, "Error", wslay_error_hash);
   mrb_hash_set(mrb, wslay_error_hash, mrb_int_value(mrb, WSLAY_ERR_WANT_READ), mrb_symbol_value(mrb_intern_lit(mrb, "want_read")));

@@ -1,0 +1,3 @@
+[submodule "deps/wslay"]
+	path = deps/wslay
+	url = https://github.com/tatsuhiro-t/wslay
