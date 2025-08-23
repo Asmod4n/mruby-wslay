@@ -2,7 +2,6 @@
 #define MRB_WSLAY_H
 
 #include <wslay/wslay.h>
-#include <mruby/throw.h>
 #include <mruby/variable.h>
 #include <mruby/string.h>
 #include <mruby/string_is_utf8.h>

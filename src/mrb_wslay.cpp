@@ -9,11 +9,8 @@ mrb_wslay_event_on_msg_recv_callback(wslay_event_context_ptr ctx,
   mrb_state *mrb = data->mrb;
 
   int ai = mrb_gc_arena_save(mrb);
-  struct mrb_jmpbuf *prev_jmp = mrb->jmp;
-  struct mrb_jmpbuf c_jmp;
 
-  MRB_TRY(&c_jmp) {
-    mrb->jmp = &c_jmp;
+  try {
 
     mrb_value argv[4];
     argv[0] = mrb_int_value(mrb, arg->rsv);
@@ -31,13 +28,11 @@ mrb_wslay_event_on_msg_recv_callback(wslay_event_context_ptr ctx,
 
     mrb_gc_arena_restore(mrb, ai);
 
-    mrb->jmp = prev_jmp;
-  } MRB_CATCH(&c_jmp) {
-    mrb->jmp = prev_jmp;
+  } catch(...) {
     wslay_event_set_error(ctx, WSLAY_ERR_CALLBACK_FAILURE);
     mrb_gc_arena_restore(mrb, ai);
-    MRB_THROW(mrb->jmp);
-  } MRB_END_EXC(&c_jmp);
+    throw;
+  }
 }
 
 static ssize_t
@@ -48,12 +43,8 @@ mrb_wslay_event_recv_callback(wslay_event_context_ptr ctx,
   mrb_state*mrb = data->mrb;
   int ai = mrb_gc_arena_save(mrb);
 
-  struct mrb_jmpbuf *prev_jmp = mrb->jmp;
-  struct mrb_jmpbuf c_jmp;
-
   mrb_int ret = -1;
-  MRB_TRY(&c_jmp) {
-    mrb->jmp = &c_jmp;
+  try {
 
     mrb_value argv[2];
     argv[0] = mrb_cptr_value(mrb, buf);
@@ -87,9 +78,7 @@ def:
       }
     }
 
-    mrb->jmp = prev_jmp;
-  } MRB_CATCH(&c_jmp) {
-    mrb->jmp = prev_jmp;
+  } catch(...) {
     if (mrb_obj_is_kind_of(mrb,
         mrb_obj_value(mrb->exc),
             mrb_class_get_under(mrb,
@@ -103,7 +92,7 @@ def:
     } else {
       wslay_event_set_error(ctx, WSLAY_ERR_CALLBACK_FAILURE);
     }
-  } MRB_END_EXC(&c_jmp);
+  }
 
   mrb_gc_arena_restore(mrb, ai);
 
@@ -119,11 +108,9 @@ mrb_wslay_event_send_callback(wslay_event_context_ptr ctx,
   mrb_state* mrb = data->mrb;
   int ai = mrb_gc_arena_save(mrb);
 
-  struct mrb_jmpbuf *prev_jmp = mrb->jmp;
-  struct mrb_jmpbuf c_jmp;
+
   mrb_int ret = -1;
-  MRB_TRY(&c_jmp) {
-    mrb->jmp = &c_jmp;
+  try {
 
     errno = 0;
     mrb_value buf_obj = mrb_str_new(mrb, (const char *) buf, len);
@@ -141,9 +128,7 @@ mrb_wslay_event_send_callback(wslay_event_context_ptr ctx,
       } break;
     }
 
-    mrb->jmp = prev_jmp;
-  } MRB_CATCH(&c_jmp) {
-    mrb->jmp = prev_jmp;
+  } catch(...) {
     if (mrb_obj_is_kind_of(mrb,
         mrb_obj_value(mrb->exc),
             mrb_class_get_under(mrb,
@@ -157,7 +142,7 @@ mrb_wslay_event_send_callback(wslay_event_context_ptr ctx,
     } else {
       wslay_event_set_error(ctx, WSLAY_ERR_CALLBACK_FAILURE);
     }
-  } MRB_END_EXC(&c_jmp);
+  }
 
   mrb_gc_arena_restore(mrb, ai);
 
@@ -269,7 +254,7 @@ mrb_wslay_event_queue_msg(mrb_state *mrb, mrb_value self)
   }
 
   struct wslay_event_msg msgarg = {
-    opc, (const uint8_t *) RSTRING_PTR(msg), RSTRING_LEN(msg)
+    (uint8_t) opc, (const uint8_t *) RSTRING_PTR(msg), (size_t) RSTRING_LEN(msg)
   };
 
   int err = wslay_event_queue_msg(data->ctx, &msgarg);
@@ -494,6 +479,7 @@ mrb_wslay_get_rsv3(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, wslay_get_rsv3(rsv));
 }
 
+MRB_BEGIN_DECL
 void
 mrb_mruby_wslay_gem_init(mrb_state* mrb) {
   struct RClass *wslay_mod, *wslay_event_mod,
@@ -589,3 +575,4 @@ mrb_mruby_wslay_gem_init(mrb_state* mrb) {
 }
 
 void mrb_mruby_wslay_gem_final(mrb_state* mrb) {}
+MRB_END_DECL

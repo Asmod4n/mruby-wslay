@@ -7,17 +7,22 @@
   spec.add_dependency 'mruby-struct'
   spec.add_dependency 'mruby-string-is-utf8'
 
-  if spec.cc.search_header_path('wslay/wslay.h')
+  if spec.cxx.search_header_path('wslay/wslay.h')
     spec.linker.libraries << 'wslay'
   else
     if spec.cc.respond_to? :search_header_path
       spec.cc.defines << 'HAVE_ARPA_INET_H' if spec.cc.search_header_path 'arpa/inet.h'
+      spec.cxx.defines << 'HAVE_ARPA_INET_H' if spec.cxx.search_header_path 'arpa/inet.h'
       spec.cc.defines << 'HAVE_NETINET_IN_H' if spec.cc.search_header_path 'netinet/in.h'
+      spec.cxx.defines << 'HAVE_NETINET_IN_H' if spec.cxx.search_header_path 'netinet/in.h'
       spec.cc.defines << 'HAVE_WINSOCK2_H' if spec.cc.search_header_path 'winsock2.h'
+      spec.cxx.defines << 'HAVE_WINSOCK2_H' if spec.cxx.search_header_path 'winsock2.h'
     end
     spec.cc.defines << 'WSLAY_VERSION=1.0.1-dev'
+    spec.cxx.defines << 'WSLAY_VERSION=1.0.1-dev'
     wslay_src = "#{spec.dir}/deps/wslay/lib"
     spec.cc.include_paths << "#{wslay_src}/includes"
+    spec.cxx.include_paths << "#{wslay_src}/includes"
     source_files = %W(
       #{wslay_src}/wslay_event.c
       #{wslay_src}/wslay_frame.c
