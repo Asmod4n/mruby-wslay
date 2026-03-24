@@ -14,14 +14,17 @@ mrb_wslay_event_on_msg_recv_callback(wslay_event_context_ptr ctx,
 
     mrb_value argv[4];
     argv[0] = mrb_int_value(mrb, arg->rsv);
+    mrb_gc_protect(mrb, argv[0]);
     argv[1] = MRB_GET_OPCODE(mrb_int_value(mrb, arg->opcode));
     argv[2] = mrb_str_new(mrb, (const char *) arg->msg, arg->msg_length);
+    mrb_gc_protect(mrb, argv[2]);
     argv[3] = MRB_GET_STATUSCODE(mrb_int_value(mrb, arg->status_code));
 
     mrb_value on_msg_recv_arg = mrb_obj_new(mrb,
       mrb_class_get_under(mrb,
         mrb_module_get_under(mrb,
           mrb_module_get(mrb, "Wslay"), "Event"), "OnMsgRecvArg"), NELEMS(argv), argv);
+    mrb_gc_protect(mrb, on_msg_recv_arg);
 
     mrb_assert(mrb_type(data->on_msg_recv_callback) == MRB_TT_PROC);
     mrb_yield(mrb, data->on_msg_recv_callback, on_msg_recv_arg);
@@ -68,6 +71,7 @@ mrb_wslay_event_recv_callback(wslay_event_context_ptr ctx,
       default: {
 def:
         buf_obj = mrb_str_to_str(mrb, buf_obj);
+        mrb_gc_protect(mrb, buf_obj);
         ret = RSTRING_LEN(buf_obj);
         if (ret < 0||ret > len) {
           mrb_raise(mrb, E_RANGE_ERROR, "returned buf doesn't fit");
@@ -114,6 +118,7 @@ mrb_wslay_event_send_callback(wslay_event_context_ptr ctx,
 
     errno = 0;
     mrb_value buf_obj = mrb_str_new(mrb, (const char *) buf, len);
+    mrb_gc_protect(mrb, buf_obj);
     mrb_assert(mrb_type(data->send_callback) == MRB_TT_PROC);
     mrb_value sent = mrb_yield(mrb, data->send_callback, buf_obj);
     switch (mrb_type(sent)) {

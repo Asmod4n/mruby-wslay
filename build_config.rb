@@ -30,6 +30,6 @@ MRuby::Build.new do |conf|
     end
   end
 
-  conf.gembox 'full-core'
+  conf.gembox 'default'
   conf.gem File.expand_path(File.dirname(__FILE__))
 end
