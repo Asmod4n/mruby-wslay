@@ -35,3 +35,7 @@ build/
 .rvmrc
 build_config.rb.lock
 /mruby/
+
+# Generated at build time by mrbgem.rake's vendored-wslay branch (copied/
+# substituted from deps/wslay/lib/includes/wslay/, not tracked source).
+/include/wslay/

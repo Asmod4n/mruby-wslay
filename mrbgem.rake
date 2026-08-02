@@ -18,11 +18,33 @@
       spec.cc.defines << 'HAVE_WINSOCK2_H' if spec.cc.search_header_path 'winsock2.h'
       spec.cxx.defines << 'HAVE_WINSOCK2_H' if spec.cxx.search_header_path 'winsock2.h'
     end
-    spec.cc.defines << 'WSLAY_VERSION=1.0.1-dev'
-    spec.cxx.defines << 'WSLAY_VERSION=1.0.1-dev'
     wslay_src = "#{spec.dir}/deps/wslay/lib"
     spec.cc.include_paths << "#{wslay_src}/includes"
     spec.cxx.include_paths << "#{wslay_src}/includes"
+
+    # Expose wslay's own public header the same way the system-wslay
+    # branch above already does implicitly (a system header is on every
+    # gem's search path for free). Every mrbgem's own include/ directory
+    # is visible to every *other* gem unconditionally - copying the
+    # vendored header there is enough for a dependent gem (webmachine-mruby)
+    # to `#include <wslay/wslay.h>` and call wslay_frame_context_init /
+    # wslay_frame_write / wslay_frame_recv directly in its own C++, no
+    # Ruby-level API needed for the frame layer (see wslay_frame.h's
+    # struct wslay_frame_context staying opaque here - only the pointer
+    # typedef and function declarations are in this public header, so
+    # nothing else needs vendoring alongside it).
+    #
+    # wslay.h itself #includes wslay/wslayver.h, which upstream ships only
+    # as an autotools .in template (@PACKAGE_VERSION@ substituted by
+    # `configure`, which never runs here) - materialize it the same way,
+    # once, with the version string this gem already uses. Single source
+    # of truth: this replaces the old separate WSLAY_VERSION -D define
+    # below, which would otherwise redefine the same macro a second time.
+    exposed_header_dir = "#{spec.dir}/include/wslay"
+    FileUtils.mkdir_p exposed_header_dir
+    FileUtils.cp "#{wslay_src}/includes/wslay/wslay.h", exposed_header_dir
+    wslayver_in = File.read("#{wslay_src}/includes/wslay/wslayver.h.in")
+    File.write("#{exposed_header_dir}/wslayver.h", wslayver_in.sub('@PACKAGE_VERSION@', '1.0.1-dev'))
     source_files = %W(
       #{wslay_src}/wslay_event.c
       #{wslay_src}/wslay_frame.c
